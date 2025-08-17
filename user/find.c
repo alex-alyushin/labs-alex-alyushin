@@ -43,7 +43,7 @@ void traverse_tree(char* path, char* name) {
 
         // result
         if (strcmp(name, de.name) == 0) {
-          fprintf(2, "%s\n", buf);
+          fprintf(1, "%s\n", buf);
         }
 
         break;
