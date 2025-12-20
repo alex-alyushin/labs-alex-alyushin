@@ -1,0 +1,182 @@
+=== Using gdb ===
+
+
+QUESTION 1: Looking at the backtrace output, which function called syscall?
+
+ANSWER 1: sys called by usertrap()
+
+    ```
+        (gdb) b *0x80001d1e
+        Breakpoint 1 at 0x80001d1e: file kernel/syscall.c, line 135.
+
+        (gdb) c
+        Continuing.
+        Thread 3 hit Breakpoint 1, syscall () at kernel/syscall.c:135
+        135	  num = * (int *) 0;
+
+        (gdb) backtrace
+        #0  syscall () at kernel/syscall.c:135
+        #1  0x0000000080001a20 in usertrap () at kernel/trap.c:67
+        #2  0x0000000000000000 in ?? ()
+    ```
+
+
+
+
+QUESTION 2: What is the value of p->trapframe->a7 and what does that value represent?
+            Hint: look user/initcode.S, the first user program xv6 starts
+
+ANSWER 2: a7 - current system call to execute
+
+    ```
+        user/initcode.S:11  li a7, SYS_exec
+        user/initcode.S:16  li a7, SYS_exit
+    ```
+
+
+
+
+QUESTION 3: What was the previous mode that the CPU was in?
+
+ANSWER 3: Previous mode was User-mode (now in Supervisor-mode)
+
+
+
+
+QUESTION 4: Write down the assembly instruction the kernel is panicing at.
+            Which register corresponds to the variable num?
+
+ANSWER4:
+
+    Assembly instruction:
+
+    ```
+        0x0000000080001d1c <+10>:	li	a5,0
+        => 0x0000000080001d1e <+12>:	lw	a5,0(a5)
+    ```
+
+    Register corresponds to num:
+        a5
+
+
+
+
+QUESTION 5: Why does the kernel crash?
+            Hint: look at figure 3-3 in the text; is address 0 mapped in the kernel address space?
+            Is that confirmed by the value in scause above?
+            (See description of scause in RISC-V privileged instructions)
+
+ANSWER 5: dereference 0x0 address
+
+    ```
+        sepc = 0x80001d1e   supervisor exception program counter
+        scause = 0xd        supervisor cause register
+        stval = 0x0         unmapped memory
+    ```
+
+
+
+
+QUESTION 6: What is the name of the process that was running when the kernel paniced?
+            What is its process id (pid)?
+
+ANSWER 6:
+
+    name = "initcode"
+    pid = 1
+
+    ```
+        (gdb) p myproc()->name
+        "initcode\000\000\000\000\000\000\000"
+
+        (gdb) p myproc()->pid
+        1
+    ```
+
+
+
+
+=== Source [syscall] ===
+
+void syscall(void) {
+  int num;
+  num = * (int *) 0;
+  struct proc *p = myproc();
+
+  num = p->trapframe->a7;
+
+  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    p->trapframe->a0 = syscalls[num]();
+  } else {
+    printf("%d %s: unknown sys call %d\n", p->pid, p->name, num);
+    p->trapframe->a0 = -1;
+  }
+}
+
+
+
+
+=== ASM [syscall] ===
+
+Dump of assembler code for function syscall:
+   0x0000000080001d12 <+0>:	    addi	sp,sp,-48
+   0x0000000080001d14 <+2>:	    sd	ra,40(sp)
+   0x0000000080001d16 <+4>:	    sd	s0,32(sp)
+   0x0000000080001d18 <+6>:	    sd	s1,24(sp)
+   0x0000000080001d1a <+8>:	    addi	s0,sp,48
+   0x0000000080001d1c <+10>:	li	a5,0
+=> 0x0000000080001d1e <+12>:	lw	a5,0(a5)
+   0x0000000080001d20 <+14>:	sw	a5,-36(s0)
+   0x0000000080001d24 <+18>:	jal	0x80000d4a <myproc>
+   0x0000000080001d28 <+22>:	sd	a0,-48(s0)
+   0x0000000080001d2c <+26>:	ld	a5,-48(s0)
+   0x0000000080001d30 <+30>:	ld	a5,88(a5)
+   0x0000000080001d32 <+32>:	ld	a5,168(a5)
+   0x0000000080001d34 <+34>:	sw	a5,-36(s0)
+   0x0000000080001d38 <+38>:	lw	a5,-36(s0)
+   0x0000000080001d3c <+42>:	sext.w	a5,a5
+   0x0000000080001d3e <+44>:	blez	a5,0x80001d80 <syscall+110>
+   0x0000000080001d42 <+48>:	lw	a4,-36(s0)
+   0x0000000080001d46 <+52>:	li	a5,21
+   0x0000000080001d48 <+54>:	bltu	a5,a4,0x80001d80 <syscall+110>
+   0x0000000080001d4c <+58>:	auipc	a4,0x6
+   0x0000000080001d50 <+62>:	addi	a4,a4,-1316 # 0x80007828 <syscalls>
+   0x0000000080001d54 <+66>:	lw	a5,-36(s0)
+   0x0000000080001d58 <+70>:	slli	a5,a5,0x3
+   0x0000000080001d5a <+72>:	add	a5,a5,a4
+   0x0000000080001d5c <+74>:	ld	a5,0(a5)
+   0x0000000080001d5e <+76>:	beqz	a5,0x80001d80 <syscall+110>
+   0x0000000080001d60 <+78>:	auipc	a4,0x6
+   0x0000000080001d64 <+82>:	addi	a4,a4,-1336 # 0x80007828 <syscalls>
+   0x0000000080001d68 <+86>:	lw	a5,-36(s0)
+   0x0000000080001d6c <+90>:	slli	a5,a5,0x3
+   0x0000000080001d6e <+92>:	add	a5,a5,a4
+   0x0000000080001d70 <+94>:	ld	a5,0(a5)
+   0x0000000080001d72 <+96>:	ld	a4,-48(s0)
+   0x0000000080001d76 <+100>:	ld	s1,88(a4)
+   0x0000000080001d78 <+102>:	jalr	a5
+   0x0000000080001d7a <+104>:	mv	a5,a0
+   0x0000000080001d7c <+106>:	sd	a5,112(s1)
+   0x0000000080001d7e <+108>:	j	0x80001dae <syscall+156>
+   0x0000000080001d80 <+110>:	ld	a5,-48(s0)
+   0x0000000080001d84 <+114>:	lw	a4,48(a5)
+   0x0000000080001d86 <+116>:	ld	a5,-48(s0)
+   0x0000000080001d8a <+120>:	addi	a5,a5,344
+   0x0000000080001d8e <+124>:	lw	a3,-36(s0)
+   0x0000000080001d92 <+128>:	mv	a2,a5
+   0x0000000080001d94 <+130>:	mv	a1,a4
+   0x0000000080001d96 <+132>:	auipc	a0,0x6
+   0x0000000080001d9a <+136>:	addi	a0,a0,-1518 # 0x800077a8
+   0x0000000080001d9e <+140>:	jal	0x80005216 <printf>
+   0x0000000080001da2 <+144>:	ld	a5,-48(s0)
+   0x0000000080001da6 <+148>:	ld	a5,88(a5)
+   0x0000000080001da8 <+150>:	li	a4,-1
+   0x0000000080001daa <+152>:	sd	a4,112(a5)
+   0x0000000080001dac <+154>:	nop
+   0x0000000080001dae <+156>:	nop
+   0x0000000080001db0 <+158>:	ld	ra,40(sp)
+   0x0000000080001db2 <+160>:	ld	s0,32(sp)
+   0x0000000080001db4 <+162>:	ld	s1,24(sp)
+   0x0000000080001db6 <+164>:	addi	sp,sp,48
+   0x0000000080001db8 <+166>:	ret
+End of assembler dump.
