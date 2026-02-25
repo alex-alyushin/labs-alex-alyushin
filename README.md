@@ -15,6 +15,10 @@ Contains my own solutiones for educational purposes and for fun.
 
 ### system calls
 
+[gdb](https://github.com/alex-alyushin/labs-alex-alyushin/commit/29b55466d3f5825b5c2eb20db61a1959606059b3) |
+[trace](https://github.com/alex-alyushin/labs-alex-alyushin/commit/b8cb0498faed7401f73e8ed236605b35d6604d82) |
+[attack](https://github.com/alex-alyushin/labs-alex-alyushin/commit/2388d1a30a4933b7836358317166e1c794552897)
+
 ### page tables
 
 ### traps
