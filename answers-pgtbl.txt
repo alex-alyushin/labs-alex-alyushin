@@ -1,0 +1,28 @@
+### Problem 1: Inspect a user-process page table ###
+
+What does each PTE logically represent, and what permissions does it have?
+
+```
+va 0xFFFFF000     trampoline    RX--
+va 0xFFFFE000     trapframe     R-W-
+...               ...           ...
+va 0x3000         heap          R-WU
+va 0x2000         stack         R-W-
+va 0x1000         data          R-WU
+va 0x0            text          RX-U
+```
+
+Differences from the book:
+
+* In the output of `pgtbltest` the stack is marked as `R-W-`, while in the book it is `R-WU`.
+* There is no guard page between the data segment and the stack.
+* Is `MAXVA = 2^38 − 1` equal to `0xFFFF FFFF` or `0x3F FFFF FFFF`?
+
+Notes:
+
+The maximum offset within a page is 0x0FFF = 2^12 - 1 = 4096 - 1.
+This means page contains 4096 addresses and each address corresponds to 1 byte.
+Therefore, the page size is 4096 bytes (4 KB).
+
+Why 0xFFFFFFFF is not equal to `MAXVA - 1`, even though it seems like it should be?
+
