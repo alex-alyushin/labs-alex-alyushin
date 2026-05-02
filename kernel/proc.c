@@ -202,6 +202,17 @@ proc_pagetable(struct proc *p)
     return 0;
   }
 
+  struct usyscall* usyscall_pa = (struct usyscall *)kalloc();
+
+  if(usyscall_pa == 0 ||
+    mappages(pagetable, USYSCALL, PGSIZE,
+              (uint64)(usyscall_pa), PTE_U | PTE_R) < 0){
+    uvmunmap(pagetable, TRAPFRAME, 1, 0);
+    uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+    uvmfree(pagetable, 0);
+    return 0;
+  }
+
   return pagetable;
 }
 
@@ -212,6 +223,7 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
+  uvmunmap(pagetable, USYSCALL, 1, 1);
   uvmfree(pagetable, sz);
 }
 
@@ -245,6 +257,8 @@ userinit(void)
   // prepare for the very first "return" from kernel to user.
   p->trapframe->epc = 0;      // user program counter
   p->trapframe->sp = PGSIZE;  // user stack pointer
+
+  ((struct usyscall *)walkaddr(p->pagetable, USYSCALL))->pid = p->pid;
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
@@ -311,6 +325,8 @@ fork(void)
   safestrcpy(np->name, p->name, sizeof(p->name));
 
   pid = np->pid;
+
+  ((struct usyscall *)walkaddr(np->pagetable, USYSCALL))->pid = pid;
 
   release(&np->lock);
 
