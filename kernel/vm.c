@@ -486,11 +486,35 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   }
 }
 
+#ifdef LAB_PGTBL
+void
+walk_print(pagetable_t pagetable, uint64 base_va, int level) {
+  for(int index = 0; index < 512; index++){
+    pte_t pte = pagetable[index];
+
+    if(!(pte & PTE_V))
+      continue;
+
+    for(int indent = 0; indent <= 2 - level; indent++)
+      printf(" ..");
+
+    uint64 va = base_va | ((uint64)index << PXSHIFT(level));
+    uint64 pa = PTE2PA(pte);
+
+    printf("%p: pte %p pa %p\n", (void*)va, (void*)pte, (void*)pa);
+
+    if(!PTE_LEAF(pte)){
+      walk_print((pagetable_t)pa, va, level - 1);
+    }
+  }
+}
+#endif
 
 #ifdef LAB_PGTBL
 void
 vmprint(pagetable_t pagetable) {
-  // your code here
+  printf("page table %p\n", pagetable);
+  walk_print(pagetable, 0x0, 2);
 }
 #endif
 
