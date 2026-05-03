@@ -21,6 +21,10 @@ Contains my own solutiones for educational purposes and for fun.
 
 ### page tables
 
+[inspect page table](https://github.com/alex-alyushin/labs-alex-alyushin/commit/dba620da240ad0ba2e046be481f20e5af5a0ee29) |
+[speed up syscalls](https://github.com/alex-alyushin/labs-alex-alyushin/commit/565c3c995bf28559e45fc647d5cc72eeae18da72) |
+[print page table](https://github.com/alex-alyushin/labs-alex-alyushin/commit/c036bebd641b4e1b4382390d22a711418b6c0ba3)
+
 ### traps
 
 ### copy-on-write
